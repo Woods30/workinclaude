@@ -1,0 +1,11 @@
+{
+  "name": "workinclaude",
+  "version": "1.0.0",
+  "description": "Team collaboration skill with brainstorming + TDD workflows",
+  "scripts": {
+    "init": "node scripts/init-project.js",
+    "install": "node scripts/install.js"
+  },
+  "keywords": ["claude", "claude-code", "skill", "team-collaboration"],
+  "author": "User"
+}
