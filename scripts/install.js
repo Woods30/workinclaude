@@ -6,16 +6,19 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const PLUGIN_DIR = path.join(__dirname, '..');
 const PLUGIN_SKILL_DIR = path.join(PLUGIN_DIR, 'skills', 'workinclaude');
 const PROJECT_SKILLS_DIR = '.claude/skills';
-const PROJECT_SKILL_DIR = path.join(PROJECT_SKILLS_DIR, 'workinclaude');
 
 const MEMORY_DIR = '.claude/memory';
 const GITIGNORE_PATH = '.gitignore';
 const CLAUDE_LOCAL = 'CLAUDE.local.md';
 const CLAUDE_LOCAL_TEMPLATE = path.join(PLUGIN_SKILL_DIR, 'templates', 'CLAUDE.local.template.md');
+
+const SUPERPOWERS_REPO = 'https://github.com/obra/superpowers.git';
+const SUPERPOWERS_DIR = path.join(PLUGIN_DIR, 'skills', 'superpowers');
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
@@ -58,15 +61,50 @@ function addToGitIgnore(pattern) {
   }
 }
 
+function cloneSuperpowers() {
+  if (fs.existsSync(SUPERPOWERS_DIR)) {
+    console.log('superpowers already exists, skipping clone');
+    return;
+  }
+
+  console.log('Cloning superpowers from GitHub...');
+  try {
+    execSync(`git clone ${SUPERPOWERS_REPO} ${SUPERPOWERS_DIR}`, { stdio: 'inherit' });
+    console.log('superpowers cloned successfully');
+  } catch (error) {
+    console.error('Failed to clone superpowers:', error.message);
+  }
+}
+
 function install() {
   console.log('WorkinClaude: Installing skill to project...\n');
+
+  // Clone superpowers if not exists
+  cloneSuperpowers();
 
   // Create project skills directory
   ensureDir(PROJECT_SKILLS_DIR);
 
-  // Copy skill files from plugin to project
-  copyDir(PLUGIN_SKILL_DIR, PROJECT_SKILL_DIR);
-  console.log(`\nSkill installed to: ${PROJECT_SKILL_DIR}`);
+  // Copy workinclaude skill
+  const workinclaudeSrc = path.join(PLUGIN_DIR, 'skills', 'workinclaude');
+  const workinclaudeDest = path.join(PROJECT_SKILLS_DIR, 'workinclaude');
+  copyDir(workinclaudeSrc, workinclaudeDest);
+  console.log(`\nSkill installed: ${workinclaudeDest}`);
+
+  // Copy superpowers (if exists locally)
+  if (fs.existsSync(SUPERPOWERS_DIR)) {
+    const superpowersDest = path.join(PROJECT_SKILLS_DIR, 'superpowers');
+    copyDir(SUPERPOWERS_DIR, superpowersDest);
+    console.log(`Skill installed: ${superpowersDest}`);
+  }
+
+  // Copy karpathy-guidelines
+  const karpathySrc = path.join(PLUGIN_DIR, 'skills', 'karpathy-guidelines');
+  if (fs.existsSync(karpathySrc)) {
+    const karpathyDest = path.join(PROJECT_SKILLS_DIR, 'karpathy-guidelines');
+    copyDir(karpathySrc, karpathyDest);
+    console.log(`Skill installed: ${karpathyDest}`);
+  }
 
   // Create memory directory and copy templates
   ensureDir(MEMORY_DIR);
@@ -93,7 +131,6 @@ function install() {
   addToGitIgnore(CLAUDE_LOCAL);
 
   console.log('\nInstallation complete!');
-  console.log(`Skill location: ${PROJECT_SKILL_DIR}`);
   console.log('Next: Restart Claude Code or run /workinclaude init');
 }
 
